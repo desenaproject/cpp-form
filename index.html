@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>FORM MENSILE · Cadet Pilot Program · DEMO</title>
+<title>FORM MENSILE · Cadet Pilot Program</title>
 <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Barlow+Condensed:wght@300;400;600;700;900&family=Barlow:wght@300;400;500&display=swap" rel="stylesheet">
 
 <style>
@@ -667,18 +667,18 @@
 <div class="orb orb-2"></div>
 <div class="scanline"></div>
 
-<!-- DEMO BANNER -->
+<!-- SETUP BANNER -->
 <div id="demoBanner" style="
   position: fixed; top: 0; left: 0; right: 0; z-index: 200;
-  background: linear-gradient(90deg, rgba(245,158,11,0.15), rgba(245,158,11,0.08), rgba(245,158,11,0.15));
-  border-bottom: 1px solid rgba(245,158,11,0.35);
+  background: linear-gradient(90deg, rgba(34,211,160,0.1), rgba(34,211,160,0.05), rgba(34,211,160,0.1));
+  border-bottom: 1px solid rgba(34,211,160,0.25);
   padding: 7px 20px;
   display: flex; align-items: center; justify-content: space-between; gap: 12px;
   backdrop-filter: blur(8px);
 ">
   <div style="display:flex; align-items:center; gap:10px;">
-    <span style="font-family:'Share Tech Mono',monospace; font-size:9px; color:#f59e0b; letter-spacing:0.25em; font-weight:700;">⚡ MODALITÀ DEMO</span>
-    <span style="font-family:'Share Tech Mono',monospace; font-size:9px; color:rgba(240,244,248,0.45); letter-spacing:0.1em;">Nessuna email verrà inviata · Al submit: anteprima report + download TXT</span>
+    <span style="font-family:'Share Tech Mono',monospace; font-size:9px; color:#22d3a0; letter-spacing:0.25em; font-weight:700;">⚙ SETUP RICHIESTO</span>
+    <span style="font-family:'Share Tech Mono',monospace; font-size:9px; color:rgba(240,244,248,0.45); letter-spacing:0.1em;">Apri index.html · Incolla il tuo GitHub Token nella variabile GH_TOKEN · Carica su GitHub Pages</span>
   </div>
   <button onclick="document.getElementById('demoBanner').style.display='none'" style="
     background:none; border:none; color:rgba(240,244,248,0.35);
@@ -692,8 +692,8 @@
     CADET: <span id="successName" style="color:#f59e0b;"></span><br>
     <span id="successDest" style="color:#22d3a0;"></span>
   </div>
-  <div id="successDemo" style="display:none;">
-    <div class="demo-badge">⚡ MODALITÀ DEMO — Configura EmailJS per l'invio reale</div>
+  <div id="successDemo" style="display:none; text-align:center;">
+    <div class="demo-badge" id="successDemoText" style="font-size:10px; letter-spacing:0.1em; padding: 6px 14px;">—</div>
   </div>
   <div class="success-sub" style="margin-bottom:6px; font-size:9px; letter-spacing:0.15em;">▸ ANTEPRIMA REPORT TXT</div>
   <div class="success-report-box">
@@ -1254,85 +1254,108 @@
 </div>
 
 <script>
-  // ─────────────────────────────────────────────────────────────────────────
-  // DEMO MODE — nessuna email inviata, report visualizzato + scaricabile
-  // Per attivare l'invio reale: vedi cadet_form.html (versione con EmailJS)
-  // ─────────────────────────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════════
+//  ⚙️  CONFIGURAZIONE — modifica solo questa sezione
+// ═══════════════════════════════════════════════════════════════════════════
+const GH_TOKEN  = "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";  // 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
+const GH_OWNER  = "desenaproject";
+const GH_REPO   = "cpp-form-atplfroze";
+const GH_BRANCH = "main";
+const DEST_EMAIL = "d.desena@flueaa.com";
+// ═══════════════════════════════════════════════════════════════════════════
 
-  const DEST_EMAIL = "d.desena@flueaa.com";
-  let _lastReport  = "";
+let _lastReport = "";
+let _lastCadet  = "";
 
-  // ── LOOKUP TABLES ─────────────────────────────────────────────────────────
-  const PHASE_LABELS = {
-    ppl:"Private Pilot FAA (PPL)", ir_faa:"Instrument Rating FAA (IR)",
-    atpl:"ATPL Theory EASA", hb:"Hour Building",
-    ir_easa:"Instrument Rating EASA", me:"Multi Engine EASA (ME)",
-    cpl:"CPL EASA", mcc:"APS MCC A320",
-    uprt:"UPRT Advanced", apc:"Assessment Preparation Course (APC)"
-  };
-  const STAGE_LABELS = {
-    inizio:"Inizio fase (familiarizzazione / onboarding)",
-    sviluppo:"Sviluppo competenze (apprendimento attivo e pratica)",
-    consolidamento:"Consolidamento (ripetizione, aumento autonomia)",
-    finale:"Finalizzazione / Pre-check (esami / skill test)"
-  };
-  const SCALE_LABELS = {
-    q2:{1:"In forte ritardo",2:"Leggermente in ritardo",3:"In linea",4:"In anticipo",5:"Molto in anticipo"},
-    q3:{1:"Troppo basso",2:"Leggermente basso",3:"Adeguato",4:"Elevato",5:"Eccessivo"},
-    q4:{1:"Insufficiente",2:"Sotto le aspettative",3:"Adeguata",4:"Buona",5:"Eccellente"},
-    q5:{1:"Scarso",2:"Sufficiente",3:"Buono",4:"Molto buono",5:"Eccellente"},
-    q6:{1:"Molto insicuro/a",2:"Poco sicuro/a",3:"Abbastanza sicuro/a",4:"Sicuro/a",5:"Molto sicuro/a"},
-    q9:{1:"Molto inefficace",2:"Poco efficace",3:"Adeguata",4:"Efficace",5:"Molto efficace"}
-  };
-  const KPI_NAMES = { q4:"TQI", q5:"IQI", q6:"SCI", q3:"WI", q9:"OE" };
+// ── LOOKUP TABLES ─────────────────────────────────────────────────────────
+const PHASE_LABELS = {
+  ppl:"Private Pilot FAA (PPL)", ir_faa:"Instrument Rating FAA (IR)",
+  atpl:"ATPL Theory EASA", hb:"Hour Building",
+  ir_easa:"Instrument Rating EASA", me:"Multi Engine EASA (ME)",
+  cpl:"CPL EASA", mcc:"APS MCC A320",
+  uprt:"UPRT Advanced", apc:"Assessment Preparation Course (APC)"
+};
+const STAGE_LABELS = {
+  inizio:"Inizio fase (familiarizzazione / onboarding)",
+  sviluppo:"Sviluppo competenze (apprendimento attivo e pratica)",
+  consolidamento:"Consolidamento (ripetizione, aumento autonomia)",
+  finale:"Finalizzazione / Pre-check (esami / skill test)"
+};
+const SCALE_LABELS = {
+  q2:{1:"In forte ritardo",2:"Leggermente in ritardo",3:"In linea",4:"In anticipo",5:"Molto in anticipo"},
+  q3:{1:"Troppo basso",2:"Leggermente basso",3:"Adeguato",4:"Elevato",5:"Eccessivo"},
+  q4:{1:"Insufficiente",2:"Sotto le aspettative",3:"Adeguata",4:"Buona",5:"Eccellente"},
+  q5:{1:"Scarso",2:"Sufficiente",3:"Buono",4:"Molto buono",5:"Eccellente"},
+  q6:{1:"Molto insicuro/a",2:"Poco sicuro/a",3:"Abbastanza sicuro/a",4:"Sicuro/a",5:"Molto sicuro/a"},
+  q9:{1:"Molto inefficace",2:"Poco efficace",3:"Adeguata",4:"Efficace",5:"Molto efficace"}
+};
+const KPI_NAMES = { q4:"TQI", q5:"IQI", q6:"SCI", q3:"WI", q9:"OE" };
+const CSV_HEADER = "timestamp,cadet,fase,stage,ore_volo,q2_avanzamento,q3_carico_WI,q4_qualita_TQI,q5_istruttori_IQI,q6_sicurezza_SCI,q9_organizzazione_OE,avg_kpi,kpi_critici,q7_argomenti,q8_difficolta,q10_miglioramento\n";
 
-  // ── SCALE BUTTONS ─────────────────────────────────────────────────────────
-  const scaleValues = {};
+// ── SCALE BUTTONS ──────────────────────────────────────────────────────────
+const scaleValues = {};
 
-  function selectScale(btn) {
-    const q = btn.dataset.q;
-    const v = btn.dataset.v;
-    document.querySelectorAll(`.scale-btn[data-q="${q}"]`).forEach(b => b.classList.remove('selected'));
-    btn.classList.add('selected');
-    scaleValues[q] = v;
-    const h = document.getElementById(`val-${q}`);
-    if (h) h.value = v;
-    btn.style.transform = 'scale(1.04)';
-    setTimeout(() => btn.style.transform = '', 150);
-  }
+function selectScale(btn) {
+  const q = btn.dataset.q, v = btn.dataset.v;
+  document.querySelectorAll(`.scale-btn[data-q="${q}"]`).forEach(b => b.classList.remove('selected'));
+  btn.classList.add('selected');
+  scaleValues[q] = v;
+  const h = document.getElementById(`val-${q}`);
+  if (h) h.value = v;
+  btn.style.transform = 'scale(1.04)';
+  setTimeout(() => btn.style.transform = '', 150);
+}
 
-  // ── BUILD TXT REPORT ──────────────────────────────────────────────────────
-  function buildTextReport(form, name) {
-    const now = new Date();
-    const dateStr = now.toLocaleString('it-IT', {
-      day:'2-digit', month:'long', year:'numeric',
-      hour:'2-digit', minute:'2-digit'
-    });
-    const q1val  = form.querySelector('input[name="q1"]:checked')?.value || '';
-    const q12val = form.querySelector('input[name="q1_2"]:checked')?.value || '';
-    const ore    = form.querySelector('input[name="q1_3"]')?.value || '';
-    const q7     = form.querySelector('textarea[name="q7"]')?.value.trim() || '(nessuna risposta)';
-    const q8     = form.querySelector('textarea[name="q8"]')?.value.trim() || '(nessuna risposta)';
-    const q10    = form.querySelector('textarea[name="q10"]')?.value.trim() || '(nessuna risposta)';
-    const kpiAvg = (() => {
-      const vals = ['q4','q5','q6','q9'].map(q => scaleValues[q]).filter(Boolean).map(Number);
-      return vals.length ? (vals.reduce((a,b)=>a+b,0)/vals.length).toFixed(2) : '—';
-    })();
-    const alertKPIs = ['q4','q5','q6','q9']
-      .filter(q => scaleValues[q] && Number(scaleValues[q]) <= 2)
-      .map(q => `${KPI_NAMES[q]}=${scaleValues[q]}`).join(', ') || 'Nessuno';
+// ── HELPERS ────────────────────────────────────────────────────────────────
+function calcAvgKPI() {
+  const vals = ['q4','q5','q6','q9'].map(q => scaleValues[q]).filter(Boolean).map(Number);
+  return vals.length ? (vals.reduce((a,b) => a+b,0) / vals.length).toFixed(2) : '—';
+}
+function getAlertKPIs() {
+  return ['q4','q5','q6','q9']
+    .filter(q => scaleValues[q] && Number(scaleValues[q]) <= 2)
+    .map(q => `${KPI_NAMES[q]}=${scaleValues[q]}`).join(', ');
+}
+function isoMonth() {
+  const d = new Date();
+  return `M${String(d.getMonth()+1).padStart(2,'0')}`;
+}
+function toBase64(str) {
+  return btoa(unescape(encodeURIComponent(str)));
+}
+function sanitizeFilename(name) {
+  return name.replace(/[^a-zA-Z0-9_\-]/g, '_').toLowerCase();
+}
+function csvEsc(s) {
+  s = String(s ?? '');
+  return (s.includes(',') || s.includes('"') || s.includes('\n'))
+    ? '"' + s.replace(/"/g, '""') + '"' : s;
+}
 
-    const L  = '─'.repeat(60);
-    const LL = '═'.repeat(60);
-    return `${LL}
+// ── BUILD TXT REPORT ───────────────────────────────────────────────────────
+function buildTextReport(form, name) {
+  const now     = new Date();
+  const dateStr = now.toLocaleString('it-IT', { day:'2-digit', month:'long', year:'numeric', hour:'2-digit', minute:'2-digit' });
+  const q1val   = form.querySelector('input[name="q1"]:checked')?.value   || '';
+  const q12val  = form.querySelector('input[name="q1_2"]:checked')?.value || '';
+  const ore     = form.querySelector('input[name="q1_3"]')?.value || '';
+  const q7      = form.querySelector('textarea[name="q7"]')?.value.trim()  || '(nessuna risposta)';
+  const q8      = form.querySelector('textarea[name="q8"]')?.value.trim()  || '(nessuna risposta)';
+  const q10     = form.querySelector('textarea[name="q10"]')?.value.trim() || '(nessuna risposta)';
+  const kpiAvg  = calcAvgKPI();
+  const alerts  = getAlertKPIs() || 'Nessuno';
+  const L  = '─'.repeat(60);
+  const LL = '═'.repeat(60);
+  return `${LL}
   CADET PILOT PROGRAM · REPORT MENSILE
   ATPL Frozen EASA · Sistema di Monitoraggio Qualità
 ${LL}
 
   DATA TRASMISSIONE : ${dateStr}
   CADET             : ${name}
-  ID FORM           : CPP-M05-2026
+  ID FORM           : CPP-${isoMonth()}-2026
   DESTINATARIO      : ${DEST_EMAIL}
+  REPOSITORY        : github.com/${GH_OWNER}/${GH_REPO}
 
 ${LL}
 
@@ -1400,94 +1423,223 @@ ${L}
   OE   (Org. Efficiency)       →  ${scaleValues.q9||'—'} / 5
   ─────────────────────────────────────────────────────
   AVG KPI (TQI+IQI+SCI+OE)/4  →  ${kpiAvg} / 5
-
-  ⚠  KPI CRITICI (≤ 2)         →  ${alertKPIs}
+  ⚠  KPI CRITICI (≤ 2)         →  ${alerts}
 
 ${LL}
-  Generato da CPP-Monitoring-System · DEMO MODE
+  Salvato su github.com/${GH_OWNER}/${GH_REPO}
   Cadet Pilot Program · ATPL Frozen EASA · © 2026
 ${LL}`.trim();
+}
+
+// ── BUILD CSV ROW ──────────────────────────────────────────────────────────
+function buildCSVRow(form, name) {
+  const q1val  = form.querySelector('input[name="q1"]:checked')?.value   || '';
+  const q12val = form.querySelector('input[name="q1_2"]:checked')?.value || '';
+  const ore    = form.querySelector('input[name="q1_3"]')?.value || '';
+  const q7     = form.querySelector('textarea[name="q7"]')?.value.trim()  || '';
+  const q8     = form.querySelector('textarea[name="q8"]')?.value.trim()  || '';
+  const q10    = form.querySelector('textarea[name="q10"]')?.value.trim() || '';
+  return [
+    new Date().toISOString(),
+    csvEsc(name),
+    csvEsc(PHASE_LABELS[q1val]  || q1val),
+    csvEsc(STAGE_LABELS[q12val] || q12val),
+    ore,
+    scaleValues.q2||'', scaleValues.q3||'',
+    scaleValues.q4||'', scaleValues.q5||'',
+    scaleValues.q6||'', scaleValues.q9||'',
+    calcAvgKPI(),
+    csvEsc(getAlertKPIs() || 'Nessuno'),
+    csvEsc(q7), csvEsc(q8), csvEsc(q10)
+  ].join(',') + '\n';
+}
+
+// ── GITHUB API ─────────────────────────────────────────────────────────────
+const API = `https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/contents`;
+
+async function ghGet(path) {
+  const r = await fetch(`${API}/${path}`, {
+    headers: { Authorization: `token ${GH_TOKEN}`, Accept: 'application/vnd.github+json' }
+  });
+  if (r.status === 404) return null;
+  if (!r.ok) throw new Error(`GitHub GET /${path}: HTTP ${r.status}`);
+  return r.json();
+}
+
+async function ghPut(path, content_b64, message, sha = null) {
+  const body = { message, content: content_b64, branch: GH_BRANCH };
+  if (sha) body.sha = sha;
+  const r = await fetch(`${API}/${path}`, {
+    method: 'PUT',
+    headers: {
+      Authorization: `token ${GH_TOKEN}`,
+      Accept: 'application/vnd.github+json',
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(body)
+  });
+  if (!r.ok) {
+    const txt = await r.text();
+    throw new Error(`GitHub PUT /${path}: HTTP ${r.status} — ${txt}`);
+  }
+  return r.json();
+}
+
+async function saveTXT(name, reportText) {
+  const now  = new Date();
+  const date = now.toISOString().slice(0,7);
+  const ts   = now.toISOString().slice(0,19).replace(/[:T]/g,'-');
+  const safe = sanitizeFilename(name);
+  const path = `reports/${date}_${safe}_${ts}.txt`;
+  await ghPut(path, toBase64(reportText), `📋 Report ${name} · ${date}`);
+  return path;
+}
+
+async function appendCSV(csvRow) {
+  const path     = 'data/responses.csv';
+  const existing = await ghGet(path);
+  let newContent, sha;
+  if (existing) {
+    const decoded = decodeURIComponent(escape(atob(existing.content.replace(/\n/g, ''))));
+    newContent = decoded + csvRow;
+    sha = existing.sha;
+  } else {
+    newContent = CSV_HEADER + csvRow;
+  }
+  await ghPut(path, toBase64(newContent), `📊 Nuova risposta ${new Date().toISOString().slice(0,10)}`, sha);
+  return path;
+}
+
+// ── DOWNLOAD LOCAL TXT ─────────────────────────────────────────────────────
+function downloadReport() {
+  if (!_lastReport) return;
+  const safe = sanitizeFilename(_lastCadet) || 'cadet';
+  const date = new Date().toISOString().slice(0,10);
+  const blob = new Blob([_lastReport], { type: 'text/plain;charset=utf-8' });
+  const a    = document.createElement('a');
+  a.href     = URL.createObjectURL(blob);
+  a.download = `CPP_Report_${safe}_${date}.txt`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+// ── STATUS TOAST ───────────────────────────────────────────────────────────
+function showToast(msg, color) {
+  let t = document.getElementById('ghToast');
+  if (!t) {
+    t = document.createElement('div');
+    t.id = 'ghToast';
+    t.style.cssText = `position:fixed;bottom:28px;left:50%;transform:translateX(-50%);
+      background:rgba(11,19,32,0.97);border:1px solid rgba(255,255,255,0.1);
+      border-radius:5px;padding:10px 22px;z-index:400;
+      font-family:'Share Tech Mono',monospace;font-size:10px;
+      letter-spacing:0.15em;transition:opacity 0.4s;white-space:nowrap;`;
+    document.body.appendChild(t);
+  }
+  t.style.color   = color === 'teal' ? '#22d3a0' : color === 'red' ? '#ef4444' : '#f59e0b';
+  t.style.opacity = '1';
+  t.textContent   = msg;
+  clearTimeout(t._tid);
+  t._tid = setTimeout(() => { t.style.opacity = '0'; }, 3500);
+}
+
+// ── SUBMIT STATE ───────────────────────────────────────────────────────────
+function setSubmitState(state, msg) {
+  const btn   = document.getElementById('submitBtn');
+  const label = document.getElementById('submitLabel');
+  if (state === 'sending') {
+    btn.disabled = true;
+    btn.innerHTML = `<span style="display:inline-block;animation:spin 1s linear infinite;font-size:18px">⟳</span> ${msg || 'SALVATAGGIO...'}`;
+    label.textContent = '▸ OPERAZIONE IN CORSO SU GITHUB · ATTENDERE...';
+  } else {
+    btn.disabled = false;
+    btn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 2L11 13M22 2L15 22l-4-9-9-4 20-7z"/></svg> TRASMETTI REPORT`;
+    label.textContent = '▸ VERIFICA TUTTI I CAMPI OBBLIGATORI PRIMA DI TRASMETTERE';
+  }
+}
+
+// ── HANDLE SUBMIT ──────────────────────────────────────────────────────────
+async function handleSubmit(e) {
+  e.preventDefault();
+  const form    = document.getElementById('cadetForm');
+  const missing = [];
+  const name    = document.getElementById('cadetName')?.value.trim();
+
+  if (!name)                                              missing.push('NOME CADET');
+  if (!form.querySelector('input[name="q1"]:checked'))    missing.push('Q-01 · Fase attuale');
+  if (!form.querySelector('input[name="q1_2"]:checked'))  missing.push('Q-01.2 · Stage');
+  ['q2','q3','q4','q5','q6','q9'].forEach(q => {
+    if (!scaleValues[q]) missing.push(`Q-${q.slice(1).padStart(2,'0').toUpperCase()} · Scala`);
+  });
+
+  if (missing.length > 0) {
+    alert(`⚠️  CAMPI MANCANTI\n\n• ${missing.join('\n• ')}\n\nCompila tutte le sezioni obbligatorie.`);
+    return;
+  }
+  if (GH_TOKEN === 'INCOLLA_QUI_IL_TUO_TOKEN') {
+    alert('⚠️  TOKEN NON CONFIGURATO\n\nApri index.html e incolla il tuo GitHub Personal Access Token nella variabile GH_TOKEN in cima allo script.');
+    return;
   }
 
-  // ── DOWNLOAD TXT ──────────────────────────────────────────────────────────
-  function downloadReport() {
-    if (!_lastReport) return;
-    const name = document.getElementById('cadetName')?.value.trim().replace(/\s+/g,'_') || 'cadet';
-    const date = new Date().toISOString().slice(0,10);
-    const blob = new Blob([_lastReport], { type: 'text/plain;charset=utf-8' });
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = `CPP_Report_${name}_${date}.txt`;
-    a.click();
-    URL.revokeObjectURL(a.href);
-  }
+  _lastReport      = buildTextReport(form, name);
+  _lastCadet       = name;
+  const csvRow     = buildCSVRow(form, name);
 
-  // ── SUBMIT STATE ──────────────────────────────────────────────────────────
-  function setSubmitState(state) {
-    const btn   = document.getElementById('submitBtn');
-    const label = document.getElementById('submitLabel');
-    if (state === 'sending') {
-      btn.disabled = true;
-      btn.innerHTML = `<span style="display:inline-block;animation:spin 1s linear infinite;font-size:18px;">⟳</span> GENERAZIONE REPORT...`;
-      label.textContent = '▸ ELABORAZIONE IN CORSO · ATTENDERE...';
-    } else {
-      btn.disabled = false;
-      btn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 2L11 13M22 2L15 22l-4-9-9-4 20-7z"/></svg> TRASMETTI REPORT`;
-      label.textContent = '▸ VERIFICA TUTTI I CAMPI OBBLIGATORI PRIMA DI TRASMETTERE';
-    }
-  }
+  try {
+    setSubmitState('sending', 'SALVO TXT...');
+    showToast('⟳ Salvataggio TXT in corso...', 'amber');
+    const txtPath = await saveTXT(name, _lastReport);
+    showToast(`✓ TXT salvato → reports/`, 'teal');
 
-  // ── HANDLE SUBMIT ─────────────────────────────────────────────────────────
-  async function handleSubmit(e) {
-    e.preventDefault();
-    const form    = document.getElementById('cadetForm');
-    const missing = [];
-    const name    = document.getElementById('cadetName')?.value.trim();
+    setSubmitState('sending', 'AGGIORNO CSV...');
+    showToast('⟳ Aggiornamento tabella CSV...', 'amber');
+    const csvPath = await appendCSV(csvRow);
+    showToast(`✓ CSV aggiornato → data/responses.csv`, 'teal');
 
-    if (!name)                                                  missing.push('NOME CADET');
-    if (!form.querySelector('input[name="q1"]:checked'))        missing.push('Q-01 · Fase attuale');
-    if (!form.querySelector('input[name="q1_2"]:checked'))      missing.push('Q-01.2 · Stage');
-    ['q2','q3','q4','q5','q6','q9'].forEach(q => {
-      if (!scaleValues[q]) missing.push(`Q-${q.slice(1).padStart(2,'0').toUpperCase()} · Scala`);
-    });
-
-    if (missing.length > 0) {
-      alert(`⚠️  CAMPI MANCANTI\n\n• ${missing.join('\n• ')}\n\nCompila tutte le sezioni obbligatorie.`);
-      return;
-    }
-
-    setSubmitState('sending');
-    await new Promise(r => setTimeout(r, 900)); // brief simulated delay
-
-    _lastReport = buildTextReport(form, name);
     setSubmitState('idle');
 
-    // Show overlay
-    document.getElementById('successName').textContent  = name.toUpperCase();
-    document.getElementById('successDest').textContent  = `⚡ DEMO · In produzione → ${DEST_EMAIL}`;
+    // Populate success overlay
+    const base = `https://github.com/${GH_OWNER}/${GH_REPO}/blob/${GH_BRANCH}`;
+    document.getElementById('successName').textContent = name.toUpperCase();
+    document.getElementById('successDest').textContent = '✓ DATI SALVATI SU GITHUB';
     document.getElementById('successDemo').style.display = 'block';
+    document.getElementById('successDemoText').innerHTML =
+      `📁 <a href="${base}/${txtPath}" target="_blank" style="color:#f59e0b;text-decoration:none;letter-spacing:0.1em;">Apri TXT ↗</a>
+       &nbsp;|&nbsp;
+       📊 <a href="${base}/${csvPath}" target="_blank" style="color:#22d3a0;text-decoration:none;letter-spacing:0.1em;">Apri tabella CSV ↗</a>`;
     document.getElementById('successReportPre').textContent = _lastReport;
     document.getElementById('successOverlay').classList.add('show');
+
+  } catch (err) {
+    setSubmitState('idle');
+    console.error(err);
+    let msg = err.message || String(err);
+    if (msg.includes('401'))      msg = 'Token non valido o scaduto.\nRigenera il token su github.com → Settings → Developer settings.';
+    else if (msg.includes('403')) msg = 'Token senza permessi.\nAssicurati di aver selezionato lo scope "repo" alla creazione del token.';
+    else if (msg.includes('404')) msg = 'Repository non trovato.\nControlla che GH_OWNER e GH_REPO siano corretti.';
+    showToast('✗ Errore GitHub — vedi alert', 'red');
+    alert(`❌ ERRORE GITHUB\n\n${msg}`);
   }
+}
 
-  // ── PROGRESS TRACKER ──────────────────────────────────────────────────────
-  const sections      = document.querySelectorAll('.section');
-  const progressSteps = ['ps1','ps2','ps3','ps4','ps5','ps6'];
+// ── PROGRESS TRACKER ───────────────────────────────────────────────────────
+const sections      = document.querySelectorAll('.section');
+const progressSteps = ['ps1','ps2','ps3','ps4','ps5','ps6'];
 
-  const observer = new IntersectionObserver((entries) => {
-    entries.forEach(entry => {
-      if (!entry.isIntersecting) return;
-      const idx = Array.from(sections).indexOf(entry.target);
-      progressSteps.forEach((id, i) => {
-        const el = document.getElementById(id);
-        if (!el) return;
-        const dot = el.querySelector('.prog-dot');
-        if (i < idx)       { el.classList.add('done');   el.classList.remove('active'); dot.textContent = '✓'; }
-        else if (i === idx){ el.classList.add('active'); el.classList.remove('done');   dot.textContent = i+1; }
-        else               { el.classList.remove('active','done');                      dot.textContent = i+1; }
-      });
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    if (!entry.isIntersecting) return;
+    const idx = Array.from(sections).indexOf(entry.target);
+    progressSteps.forEach((id, i) => {
+      const el  = document.getElementById(id);
+      if (!el) return;
+      const dot = el.querySelector('.prog-dot');
+      if (i < idx)        { el.classList.add('done');   el.classList.remove('active'); dot.textContent = '✓'; }
+      else if (i === idx) { el.classList.add('active'); el.classList.remove('done');   dot.textContent = i+1; }
+      else                { el.classList.remove('active','done');                      dot.textContent = i+1; }
     });
-  }, { threshold: 0.4 });
+  });
+}, { threshold: 0.4 });
 
   sections.forEach(s => observer.observe(s));
 </script>
